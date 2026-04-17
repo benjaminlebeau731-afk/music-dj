@@ -267,6 +267,10 @@
             nodes.bass.frequency.value = 150; // Boost frequencies below 150Hz
             nodes.bass.gain.value = 0;
 
+            // NEW: Makeup volume to keep the song loud when bass is boosted
+            nodes.bassMakeup = audioCtx.createGain();
+            nodes.bassMakeup.gain.value = 1;
+
             // 2. Treble Boost (HighShelf)
             nodes.treble = audioCtx.createBiquadFilter();
             nodes.treble.type = 'highshelf';
@@ -331,6 +335,7 @@
             // --- Connect the Graph ---
             // Main Series Chain
             track.connect(nodes.bass)
+                 .connect(nodes.bassMakeup)
                  .connect(nodes.treble)
                  .connect(nodes.lofi)
                  .connect(nodes.distortion)
@@ -354,16 +359,16 @@
             nodes.reverbWet.connect(masterGain);
 
             // Output
-            masterGain.connect(analyser);
-            analyser.connect(audioCtx.destination);
-        }
+        masterGain.connect(analyser);
+        analyser.connect(audioCtx.destination);
+    }
 
-        // Helper: Generate Distortion Curve Math
-        function makeDistortionCurve(amount) {
-            if (amount === 0) return new Float32Array([0, 0]);
-            const k = amount;
-            const n_samples = 44100;
-            const curve = new Float32Array(n_samples);
+    // Helper: Generate Distortion Curve Math
+    function makeDistortionCurve(amount) {
+        if (amount === 0) return null; // Fix: Returning null bypasses the effect instead of muting the track
+        const k = amount;
+        const n_samples = 44100;
+        const curve = new Float32Array(n_samples);
             const deg = Math.PI / 180;
             for (let i = 0; i < n_samples; ++i) {
                 const x = i * 2 / n_samples - 1;
@@ -495,8 +500,14 @@
 
         // 1. Bass
         document.getElementById('slider-bass').addEventListener('input', (e) => {
-            if(nodes.bass) nodes.bass.gain.value = e.target.value;
-            updateText('val-bass', `${e.target.value} dB`);
+            const bassVal = parseFloat(e.target.value);
+            if(nodes.bass) nodes.bass.gain.value = bassVal;
+            
+            // Boost the overall volume as bass increases so the song doesn't get drowned out
+            // At max bass (40dB), this will make the rest of the song up to 150% louder
+            if(nodes.bassMakeup) nodes.bassMakeup.gain.value = 1 + (bassVal / 40) * 1.5; 
+            
+            updateText('val-bass', `${bassVal} dB`);
         });
 
         // 2. Treble
