@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SonicForge - Ultimate Audio Player</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom styling for range sliders */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #a855f7;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #374151;
+            border-radius: 2px;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen font-sans selection:bg-purple-500 selection:text-white pb-12">
+
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        
+        <!-- Header -->
+        <header class="flex flex-col items-center justify-center mb-8 text-center">
+            <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-500 rounded-2xl flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(168,85,247,0.4)]">
+                <i data-lucide="music-4" class="w-8 h-8 text-white"></i>
+            </div>
+            <h1 class="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
+                SonicForge Player
+            </h1>
+            <p class="text-gray-400 mt-2">Upload a track and sculpt your sound.</p>
+        </header>
+
+        <!-- Player Core (Upload, Visualizer, Transport) -->
+        <div class="bg-gray-900 rounded-2xl p-6 shadow-2xl border border-gray-800 mb-8">
+            
+            <!-- File Upload & Track Info -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+                <label class="cursor-pointer bg-gray-800 hover:bg-gray-700 transition px-4 py-2 rounded-lg border border-gray-700 flex items-center gap-2 group">
+                    <i data-lucide="upload" class="w-4 h-4 text-purple-400 group-hover:text-purple-300"></i>
+                    <span class="text-sm font-medium">Upload Audio File</span>
+                    <input type="file" id="file-input" accept="audio/*" class="hidden">
+                </label>
+                <div class="flex-1 text-center sm:text-right overflow-hidden">
+                    <h2 id="track-name" class="text-lg font-semibold truncate text-gray-200">No Track Loaded</h2>
+                    <p class="text-xs text-gray-500">Awaiting audio file...</p>
+                </div>
+            </div>
+
+            <!-- Audio Element (Hidden, managed by JS) -->
+            <audio id="audio-element"></audio>
+
+            <!-- Visualizer -->
+            <div class="w-full h-32 bg-gray-950 rounded-xl mb-6 relative overflow-hidden border border-gray-800">
+                <canvas id="visualizer" class="absolute inset-0 w-full h-full"></canvas>
+            </div>
+
+            <!-- Transport Controls -->
+            <div class="flex flex-col gap-4">
+                <!-- Timeline -->
+                <div class="flex items-center gap-3">
+                    <span id="time-current" class="text-xs text-gray-400 w-10 text-right">0:00</span>
+                    <input type="range" id="seek-slider" min="0" max="100" value="0" class="flex-1 accent-purple-500">
+                    <span id="time-total" class="text-xs text-gray-400 w-10">0:00</span>
+                </div>
+
+                <!-- Play/Pause -->
+                <div class="flex items-center justify-center gap-6">
+                    <button id="btn-play-pause" class="w-14 h-14 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-lg focus:outline-none opacity-50 cursor-not-allowed" disabled>
+                        <i data-lucide="play" id="icon-play" class="w-6 h-6 text-white ml-1"></i>
+                        <i data-lucide="pause" id="icon-pause" class="w-6 h-6 text-white hidden"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section Title -->
+        <div class="flex items-center gap-2 mb-6">
+            <i data-lucide="sliders" class="w-5 h-5 text-purple-400"></i>
+            <h3 class="text-xl font-bold">Audio Effects Laboratory</h3>
+        </div>
+
+        <!-- Effects Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            
+            <!-- 1. Bass Boost -->
+            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="speaker" class="w-4 h-4 text-blue-400"></i> Bass Boost</span>
+                    <span id="val-bass" class="text-xs font-mono text-purple-400">0 dB</span>
+                </div>
+                <input type="range" id="slider-bass" min="0" max="40" value="0" step="1">
+            </div>
+
+            <!-- 2. Treble Boost -->
+            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="radio" class="w-4 h-4 text-blue-400"></i> Treble (Air)</span>
+                    <span id="val-treble" class="text-xs font-mono text-purple-400">0 dB</span>
+                </div>
+                <input type="range" id="slider-treble" min="0" max="30" value="0" step="1">
+            </div>
+
+            <!-- 3. Tempo -->
+            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="fast-forward" class="w-4 h-4 text-green-400"></i> Tempo</span>
+                    <span id="val-tempo" class="text-xs font-mono text-purple-400">1.00x</span>
+                </div>
+                <input type="range" id="slider-tempo" min="0.5" max="2" value="1" step="0.05">
+            </div>
+
+            <!-- 4. Vinyl Pitch -->
+            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="disc" class="w-4 h-4 text-yellow-400"></i> Vinyl Pitch</span>
+                    <span id="val-pitch" class="text-xs font-mono text-purple-400">Normal</span>
+                </div>
+                <input type="range" id="slider-pitch" min="0.5" max="1.5" value="1" step="0.05">
+            </div>
+
+            <!-- 5. 8D Panner -->
+            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="headphones" class="w-4 h-4 text-pink-400"></i> 8D Audio</span>
+                    <span id="val-8d" class="text-xs font-mono text-purple-400">Off</span>
+                </div>
+                <input type="range" id="slider-8d" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 6. Reverb -->
+            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="waves" class="w-4 h-4 text-cyan-400"></i> Reverb (Room)</span>
+                    <span id="val-reverb" class="text-xs font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-reverb" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 7. Delay / Echo -->
+            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="copy" class="w-4 h-4 text-teal-400"></i> Echo</span>
+                    <span id="val-delay" class="text-xs font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-delay" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 8. Lo-Fi Filter -->
+            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="coffee" class="w-4 h-4 text-orange-400"></i> Lo-Fi Muffle</span>
+                    <span id="val-lofi" class="text-xs font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-lofi" min="0" max="100" value="0" step="1">
+            </div>
+
+            <!-- 9. Distortion -->
+            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="zap" class="w-4 h-4 text-red-400"></i> Distortion</span>
+                    <span id="val-dist" class="text-xs font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-dist" min="0" max="100" value="0" step="1">
+            </div>
+
+            <!-- 10. Tremolo -->
+            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="activity" class="w-4 h-4 text-indigo-400"></i> Tremolo</span>
+                    <span id="val-tremolo" class="text-xs font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-tremolo" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 11. Night Mode (Compressor) -->
+            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="moon" class="w-4 h-4 text-gray-300"></i> Night Mode</span>
+                    <span id="val-night" class="text-xs font-mono text-purple-400">Off</span>
+                </div>
+                <input type="range" id="slider-night" min="0" max="100" value="0" step="1">
+            </div>
+
+            <!-- Master Volume -->
+            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="volume-2" class="w-4 h-4 text-white"></i> Master Volume</span>
+                    <span id="val-vol" class="text-xs font-mono text-purple-400">100%</span>
+                </div>
+                <input type="range" id="slider-vol" min="0" max="2" value="1" step="0.01">
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        // DOM Elements
+        const fileInput = document.getElementById('file-input');
+        const audioElement = document.getElementById('audio-element');
+        const playPauseBtn = document.getElementById('btn-play-pause');
+        const iconPlay = document.getElementById('icon-play');
+        const iconPause = document.getElementById('icon-pause');
+        const seekSlider = document.getElementById('seek-slider');
+        const timeCurrent = document.getElementById('time-current');
+        const timeTotal = document.getElementById('time-total');
+        const canvas = document.getElementById('visualizer');
+        const canvasCtx = canvas.getContext('2d');
+
+        // State
+        let audioCtx, track, analyser, masterGain;
+        let isPlaying = false;
+        let nodes = {}; // Store Web Audio nodes here
+        let animationId;
+
+        // Ensure canvas sizing is correct
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Formats time in seconds to M:SS
+        const formatTime = (time) => {
+            if (isNaN(time)) return "0:00";
+            const minutes = Math.floor(time / 60);
+            const seconds = Math.floor(time % 60);
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        };
+
+        // Initialize Web Audio API Graph
+        function initAudioGraph() {
+            if (audioCtx) return; // Prevent double initialization
+
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            track = audioCtx.createMediaElementSource(audioElement);
+
+            // 1. Bass Boost (LowShelf)
+            nodes.bass = audioCtx.createBiquadFilter();
+            nodes.bass.type = 'lowshelf';
+            nodes.bass.frequency.value = 150; // Boost frequencies below 150Hz
+            nodes.bass.gain.value = 0;
+
+            // 2. Treble Boost (HighShelf)
+            nodes.treble = audioCtx.createBiquadFilter();
+            nodes.treble.type = 'highshelf';
+            nodes.treble.frequency.value = 4000;
+            nodes.treble.gain.value = 0;
+
+            // 3. Distortion (WaveShaper)
+            nodes.distortion = audioCtx.createWaveShaper();
+            nodes.distortion.oversample = '4x';
+            nodes.distortion.curve = makeDistortionCurve(0);
+
+            // 4. Lo-Fi (Lowpass Filter)
+            nodes.lofi = audioCtx.createBiquadFilter();
+            nodes.lofi.type = 'lowpass';
+            nodes.lofi.frequency.value = 22050; // Start fully open
+
+            // 5. Night Mode (DynamicsCompressor)
+            nodes.compressor = audioCtx.createDynamicsCompressor();
+            nodes.compressor.threshold.value = 0; 
+            nodes.compressor.ratio.value = 1;
+
+            // 6. Tremolo (Gain Modulated by LFO)
+            nodes.tremolo = audioCtx.createGain();
+            nodes.tremoloLFO = audioCtx.createOscillator();
+            nodes.tremoloLFOGain = audioCtx.createGain();
+            nodes.tremoloLFO.frequency.value = 6; // 6Hz wobble
+            nodes.tremoloLFOGain.gain.value = 0;
+            nodes.tremoloLFO.connect(nodes.tremoloLFOGain);
+            nodes.tremoloLFOGain.connect(nodes.tremolo.gain);
+            nodes.tremoloLFO.start();
+
+            // 7. 8D Panner (StereoPanner Modulated by LFO)
+            nodes.panner = audioCtx.createStereoPanner();
+            nodes.pannerLFO = audioCtx.createOscillator();
+            nodes.pannerLFOGain = audioCtx.createGain();
+            nodes.pannerLFO.frequency.value = 0.2; // 0.2Hz sweep (slow)
+            nodes.pannerLFOGain.gain.value = 0;
+            nodes.pannerLFO.connect(nodes.pannerLFOGain);
+            nodes.pannerLFOGain.connect(nodes.panner.pan);
+            nodes.pannerLFO.start();
+
+            // 8. Master Gain & Analyser
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 1;
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+
+            // 9. Delay (Echo) - Parallel Routing
+            nodes.delay = audioCtx.createDelay(5.0);
+            nodes.delay.delayTime.value = 0.4;
+            nodes.delayFeedback = audioCtx.createGain();
+            nodes.delayFeedback.gain.value = 0.4; // Decay length
+            nodes.delayWet = audioCtx.createGain();
+            nodes.delayWet.gain.value = 0; // Starts dry
+
+            // 10. Reverb - Parallel Routing
+            nodes.reverb = audioCtx.createConvolver();
+            nodes.reverb.buffer = createReverbBuffer(audioCtx, 3); // 3 sec decay
+            nodes.reverbWet = audioCtx.createGain();
+            nodes.reverbWet.gain.value = 0; // Starts dry
+
+            // --- Connect the Graph ---
+            // Main Series Chain
+            track.connect(nodes.bass)
+                 .connect(nodes.treble)
+                 .connect(nodes.lofi)
+                 .connect(nodes.distortion)
+                 .connect(nodes.compressor)
+                 .connect(nodes.tremolo)
+                 .connect(nodes.panner);
+
+            // Split from Panner to Master and Parallel Effects
+            nodes.panner.connect(masterGain);
+            
+            // Delay Loop
+            nodes.panner.connect(nodes.delay);
+            nodes.delay.connect(nodes.delayFeedback);
+            nodes.delayFeedback.connect(nodes.delay);
+            nodes.delay.connect(nodes.delayWet);
+            nodes.delayWet.connect(masterGain);
+
+            // Reverb Loop
+            nodes.panner.connect(nodes.reverb);
+            nodes.reverb.connect(nodes.reverbWet);
+            nodes.reverbWet.connect(masterGain);
+
+            // Output
+            masterGain.connect(analyser);
+            analyser.connect(audioCtx.destination);
+        }
+
+        // Helper: Generate Distortion Curve Math
+        function makeDistortionCurve(amount) {
+            if (amount === 0) return new Float32Array([0, 0]);
+            const k = amount;
+            const n_samples = 44100;
+            const curve = new Float32Array(n_samples);
+            const deg = Math.PI / 180;
+            for (let i = 0; i < n_samples; ++i) {
+                const x = i * 2 / n_samples - 1;
+                curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
+            }
+            return curve;
+        }
+
+        // Helper: Generate Synthetic Reverb Impulse Response
+        function createReverbBuffer(audioCtx, duration) {
+            const sampleRate = audioCtx.sampleRate;
+            const length = sampleRate * duration;
+            const impulse = audioCtx.createBuffer(2, length, sampleRate);
+            const left = impulse.getChannelData(0);
+            const right = impulse.getChannelData(1);
+            for (let i = 0; i < length; i++) {
+                const decay = Math.exp(-i / (sampleRate * (duration / 4)));
+                left[i] = (Math.random() * 2 - 1) * decay;
+                right[i] = (Math.random() * 2 - 1) * decay;
+            }
+            return impulse;
+        }
+
+        // --- UI & Event Listeners ---
+
+        // File Upload
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                audioElement.src = url;
+                document.getElementById('track-name').innerText = file.name;
+                
+                playPauseBtn.disabled = false;
+                playPauseBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                
+                initAudioGraph();
+                togglePlay();
+            }
+        });
+
+        // Play / Pause logic
+        function togglePlay() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            if (audioElement.paused) {
+                audioElement.play();
+                isPlaying = true;
+                iconPlay.classList.add('hidden');
+                iconPause.classList.remove('hidden');
+                drawVisualizer();
+            } else {
+                audioElement.pause();
+                isPlaying = false;
+                iconPlay.classList.remove('hidden');
+                iconPause.classList.add('hidden');
+                cancelAnimationFrame(animationId);
+            }
+        }
+
+        playPauseBtn.addEventListener('click', togglePlay);
+
+        // Timeline updates
+        audioElement.addEventListener('timeupdate', () => {
+            const percent = (audioElement.currentTime / audioElement.duration) * 100;
+            seekSlider.value = percent || 0;
+            timeCurrent.innerText = formatTime(audioElement.currentTime);
+        });
+
+        audioElement.addEventListener('loadedmetadata', () => {
+            timeTotal.innerText = formatTime(audioElement.duration);
+        });
+
+        seekSlider.addEventListener('input', (e) => {
+            const seekTime = (e.target.value / 100) * audioElement.duration;
+            audioElement.currentTime = seekTime;
+        });
+
+        // --- Visualizer Loop ---
+        function drawVisualizer() {
+            if (!isPlaying) return;
+            animationId = requestAnimationFrame(drawVisualizer);
+
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyser.getByteFrequencyData(dataArray);
+
+            canvasCtx.fillStyle = '#030712'; // bg-gray-950
+            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const barWidth = (canvas.width / bufferLength) * 2.5;
+            let barHeight;
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                barHeight = dataArray[i] / 2;
+
+                // Color gradient based on height
+                const r = barHeight + 100;
+                const g = 50;
+                const b = 250 - (barHeight * 2);
+
+                canvasCtx.fillStyle = `rgb(${r},${g},${b})`;
+                canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+
+                x += barWidth + 1;
+            }
+        }
+
+        // --- Control Sliders Logic ---
+        
+        // Helper to update text labels
+        const updateText = (id, text) => document.getElementById(id).innerText = text;
+
+        // 1. Bass
+        document.getElementById('slider-bass').addEventListener('input', (e) => {
+            if(nodes.bass) nodes.bass.gain.value = e.target.value;
+            updateText('val-bass', `${e.target.value} dB`);
+        });
+
+        // 2. Treble
+        document.getElementById('slider-treble').addEventListener('input', (e) => {
+            if(nodes.treble) nodes.treble.gain.value = e.target.value;
+            updateText('val-treble', `${e.target.value} dB`);
+        });
+
+        // 3. Tempo (Preserves Pitch)
+        document.getElementById('slider-tempo').addEventListener('input', (e) => {
+            audioElement.preservesPitch = true;
+            audioElement.playbackRate = e.target.value;
+            updateText('val-tempo', `${parseFloat(e.target.value).toFixed(2)}x`);
+            
+            // Reset Pitch slider to avoid conflict
+            document.getElementById('slider-pitch').value = 1;
+            updateText('val-pitch', 'Normal');
+        });
+
+        // 4. Vinyl Pitch (Changes Speed AND Pitch)
+        document.getElementById('slider-pitch').addEventListener('input', (e) => {
+            audioElement.preservesPitch = false;
+            audioElement.playbackRate = e.target.value;
+            updateText('val-pitch', `${parseFloat(e.target.value).toFixed(2)}x`);
+
+            // Reset Tempo slider to avoid conflict
+            document.getElementById('slider-tempo').value = 1;
+            updateText('val-tempo', '1.00x');
+        });
+
+        // 5. 8D Panner
+        document.getElementById('slider-8d').addEventListener('input', (e) => {
+            if(nodes.pannerLFOGain) nodes.pannerLFOGain.gain.value = e.target.value;
+            updateText('val-8d', `${Math.round(e.target.value * 100)}%`);
+        });
+
+        // 6. Reverb
+        document.getElementById('slider-reverb').addEventListener('input', (e) => {
+            if(nodes.reverbWet) nodes.reverbWet.gain.value = e.target.value;
+            updateText('val-reverb', `${Math.round(e.target.value * 100)}%`);
+        });
+
+        // 7. Delay (Echo)
+        document.getElementById('slider-delay').addEventListener('input', (e) => {
+            if(nodes.delayWet) nodes.delayWet.gain.value = e.target.value;
+            updateText('val-delay', `${Math.round(e.target.value * 100)}%`);
+        });
+
+        // 8. Lo-Fi
+        document.getElementById('slider-lofi').addEventListener('input', (e) => {
+            const val = e.target.value;
+            // Exponentially map 0-100 to 22050Hz - 800Hz
+            const freq = val == 0 ? 22050 : 22050 * Math.pow(800/22050, val/100);
+            if(nodes.lofi) nodes.lofi.frequency.value = freq;
+            updateText('val-lofi', `${val}%`);
+        });
+
+        // 9. Distortion
+        document.getElementById('slider-dist').addEventListener('input', (e) => {
+            const amount = parseInt(e.target.value);
+            if(nodes.distortion) nodes.distortion.curve = makeDistortionCurve(amount * 4); // Scale up for effect
+            updateText('val-dist', `${amount}%`);
+        });
+
+        // 10. Tremolo
+        document.getElementById('slider-tremolo').addEventListener('input', (e) => {
+            if(nodes.tremoloLFOGain) nodes.tremoloLFOGain.gain.value = e.target.value;
+            updateText('val-tremolo', `${Math.round(e.target.value * 100)}%`);
+        });
+
+        // 11. Night Mode (Dynamics Compressor)
+        document.getElementById('slider-night').addEventListener('input', (e) => {
+            const val = e.target.value; // 0 to 100
+            if(nodes.compressor) {
+                // As slider goes up, lower the threshold (catch more audio) and raise the ratio (squash it harder)
+                nodes.compressor.threshold.value = val == 0 ? 0 : -50 * (val/100);
+                nodes.compressor.ratio.value = val == 0 ? 1 : 1 + (19 * (val/100)); // ratio 1 to 20
+            }
+            updateText('val-night', val == 0 ? 'Off' : `${val}%`);
+        });
+
+        // 12. Master Volume
+        document.getElementById('slider-vol').addEventListener('input', (e) => {
+            if(masterGain) masterGain.gain.value = e.target.value;
+            updateText('val-vol', `${Math.round(e.target.value * 100)}%`);
+        });
+
+    </script>
+</body>
+</html>
