@@ -37,9 +37,9 @@
         }
     </style>
 </head>
-<body class="bg-gray-950 text-gray-100 min-h-screen font-sans selection:bg-purple-500 selection:text-white pb-12">
+<body class="bg-gray-950 text-gray-100 min-h-screen font-sans selection:bg-purple-500 selection:text-white pb-12 overflow-x-hidden">
 
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+    <div class="w-full max-w-[100vw] mx-auto px-4 sm:px-6 lg:px-8 pt-4">
         
         <!-- Header -->
         <header class="flex flex-col items-center justify-center mb-8 text-center">
@@ -57,23 +57,36 @@
             
             <!-- File Upload & Track Info -->
             <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-                <label class="cursor-pointer bg-gray-800 hover:bg-gray-700 transition px-4 py-2 rounded-lg border border-gray-700 flex items-center gap-2 group">
-                    <i data-lucide="upload" class="w-4 h-4 text-purple-400 group-hover:text-purple-300"></i>
-                    <span class="text-sm font-medium">Upload File</span>
-                    <input type="file" id="file-input" class="hidden">
-                </label>
+                <div class="flex items-center gap-2">
+                    <label class="cursor-pointer bg-gray-800 hover:bg-gray-700 transition px-4 py-2 rounded-lg border border-gray-700 flex items-center gap-2 group">
+                        <i data-lucide="upload" class="w-4 h-4 text-purple-400 group-hover:text-purple-300"></i>
+                        <span class="text-sm font-medium">Upload File</span>
+                        <input type="file" id="file-input" class="hidden">
+                    </label>
+                    <button id="btn-record" class="bg-gray-800 hover:bg-gray-700 text-red-400 transition px-4 py-2 rounded-lg border border-gray-700 flex items-center gap-2">
+                        <i data-lucide="mic" class="w-4 h-4"></i>
+                        <span id="record-text" class="text-sm font-medium">Record Mic</span>
+                    </button>
+                    
+                    <!-- NEW: Search iTunes Button -->
+                    <button id="btn-open-itunes" class="bg-gray-800 hover:bg-gray-700 text-blue-400 transition px-4 py-2 rounded-lg border border-gray-700 flex items-center gap-2">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                        <span class="text-sm font-medium hidden sm:inline">Search iTunes</span>
+                    </button>
+                </div>
                 <div class="flex-1 text-center sm:text-right overflow-hidden">
                     <h2 id="track-name" class="text-lg font-semibold truncate text-gray-200">No Track Loaded</h2>
-                    <p class="text-xs text-gray-500">Awaiting file...</p>
+                    <p class="text-xs text-gray-500">Awaiting file or mic...</p>
                 </div>
             </div>
 
             <!-- Audio Element (Hidden, managed by JS) -->
-            <audio id="audio-element"></audio>
+            <audio id="audio-element" crossorigin="anonymous"></audio>
 
-            <!-- Visualizer -->
-            <div class="w-full h-32 bg-gray-950 rounded-xl mb-6 relative overflow-hidden border border-gray-800">
-                <canvas id="visualizer" class="absolute inset-0 w-full h-full"></canvas>
+            <!-- Visualizer (Now locked to 720p HD for standard Discord Video embedding) -->
+            <div class="w-full aspect-video max-h-[30vh] bg-gray-950 rounded-xl mb-6 relative overflow-hidden border border-gray-800 flex items-center justify-center">
+                <!-- 1280x720 forces the downloaded video to be 720p HD -->
+                <canvas id="visualizer" width="1280" height="720" class="w-full h-full object-cover"></canvas>
             </div>
 
             <!-- Transport Controls -->
@@ -85,133 +98,382 @@
                     <span id="time-total" class="text-xs text-gray-400 w-10">0:00</span>
                 </div>
 
-                <!-- Play/Pause -->
+                <!-- Play/Pause & Export -->
                 <div class="flex items-center justify-center gap-6">
+                    <div class="w-12"></div> <!-- Spacer to keep play button centered -->
+                    
                     <button id="btn-play-pause" class="w-14 h-14 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-lg focus:outline-none opacity-50 cursor-not-allowed" disabled>
                         <i data-lucide="play" id="icon-play" class="w-6 h-6 text-white ml-1"></i>
                         <i data-lucide="pause" id="icon-pause" class="w-6 h-6 text-white hidden"></i>
+                    </button>
+
+                    <!-- Live Export / Download Button -->
+                    <button id="btn-export" title="Record Mix to Download" class="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-700 transition-all border border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed group focus:outline-none" disabled>
+                        <i data-lucide="download" id="icon-export" class="w-5 h-5 text-gray-400 group-hover:text-green-400 transition-colors"></i>
+                        <i data-lucide="square" id="icon-export-stop" class="w-5 h-5 text-red-500 hidden"></i>
                     </button>
                 </div>
             </div>
         </div>
 
         <!-- Section Title -->
-        <div class="flex items-center gap-2 mb-6">
+        <div class="flex items-center gap-2 mb-6 mt-2">
             <i data-lucide="sliders" class="w-5 h-5 text-purple-400"></i>
-            <h3 class="text-xl font-bold">Audio Effects Laboratory</h3>
+            <h3 class="text-xl font-bold">Audio Effects Laboratory (35 Tools)</h3>
         </div>
 
         <!-- Effects Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-8 gap-3">
             
             <!-- 1. Bass Boost -->
-            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
                 <div class="flex justify-between items-center mb-3">
-                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="speaker" class="w-4 h-4 text-blue-400"></i> Bass Boost</span>
-                    <span id="val-bass" class="text-xs font-mono text-purple-400">0 dB</span>
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="speaker" class="w-3.5 h-3.5 text-blue-400"></i> Bass</span>
+                    <span id="val-bass" class="text-[10px] font-mono text-purple-400">0 dB</span>
                 </div>
                 <input type="range" id="slider-bass" min="0" max="40" value="0" step="1">
             </div>
 
-            <!-- 2. Treble Boost -->
-            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+            <!-- 2. Sub-Bass -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
                 <div class="flex justify-between items-center mb-3">
-                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="radio" class="w-4 h-4 text-blue-400"></i> Treble (Air)</span>
-                    <span id="val-treble" class="text-xs font-mono text-purple-400">0 dB</span>
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="speaker" class="w-3.5 h-3.5 text-indigo-500"></i> Sub-Bass</span>
+                    <span id="val-subbass" class="text-[10px] font-mono text-purple-400">0 dB</span>
+                </div>
+                <input type="range" id="slider-subbass" min="0" max="40" value="0" step="1">
+            </div>
+
+            <!-- 3. Treble -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="radio" class="w-3.5 h-3.5 text-blue-400"></i> Treble</span>
+                    <span id="val-treble" class="text-[10px] font-mono text-purple-400">0 dB</span>
                 </div>
                 <input type="range" id="slider-treble" min="0" max="30" value="0" step="1">
             </div>
 
-            <!-- 3. Tempo -->
-            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+            <!-- 4. Brilliance -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
                 <div class="flex justify-between items-center mb-3">
-                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="fast-forward" class="w-4 h-4 text-green-400"></i> Tempo</span>
-                    <span id="val-tempo" class="text-xs font-mono text-purple-400">1.00x</span>
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="sparkles" class="w-3.5 h-3.5 text-yellow-200"></i> Brilliance</span>
+                    <span id="val-brilliance" class="text-[10px] font-mono text-purple-400">0 dB</span>
+                </div>
+                <input type="range" id="slider-brilliance" min="0" max="30" value="0" step="1">
+            </div>
+
+            <!-- 5. Tempo -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="fast-forward" class="w-3.5 h-3.5 text-green-400"></i> Tempo</span>
+                    <span id="val-tempo" class="text-[10px] font-mono text-purple-400">1.00x</span>
                 </div>
                 <input type="range" id="slider-tempo" min="0.5" max="2" value="1" step="0.05">
             </div>
 
-            <!-- 4. Vinyl Pitch -->
-            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+            <!-- 6. Vinyl Pitch -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
                 <div class="flex justify-between items-center mb-3">
-                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="disc" class="w-4 h-4 text-yellow-400"></i> Vinyl Pitch</span>
-                    <span id="val-pitch" class="text-xs font-mono text-purple-400">Normal</span>
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="disc" class="w-3.5 h-3.5 text-yellow-400"></i> Vinyl Pitch</span>
+                    <span id="val-pitch" class="text-[10px] font-mono text-purple-400">Normal</span>
                 </div>
                 <input type="range" id="slider-pitch" min="0.5" max="1.5" value="1" step="0.05">
             </div>
 
-            <!-- 5. 8D Panner -->
-            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+            <!-- 7. 8D Panner -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
                 <div class="flex justify-between items-center mb-3">
-                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="headphones" class="w-4 h-4 text-pink-400"></i> 8D Audio</span>
-                    <span id="val-8d" class="text-xs font-mono text-purple-400">Off</span>
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="headphones" class="w-3.5 h-3.5 text-pink-400"></i> 8D Sweep</span>
+                    <span id="val-8d" class="text-[10px] font-mono text-purple-400">Off</span>
                 </div>
                 <input type="range" id="slider-8d" min="0" max="1" value="0" step="0.01">
             </div>
 
-            <!-- 6. Reverb -->
-            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+            <!-- 8. Auto-Pan -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
                 <div class="flex justify-between items-center mb-3">
-                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="waves" class="w-4 h-4 text-cyan-400"></i> Reverb (Room)</span>
-                    <span id="val-reverb" class="text-xs font-mono text-purple-400">0%</span>
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="move-horizontal" class="w-3.5 h-3.5 text-rose-400"></i> Auto-Pan</span>
+                    <span id="val-autopan" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-autopan" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 9. Surround 3D -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="box" class="w-3.5 h-3.5 text-emerald-400"></i> Surround 3D</span>
+                    <span id="val-surround" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-surround" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 10. Reverb -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="waves" class="w-3.5 h-3.5 text-cyan-400"></i> Reverb</span>
+                    <span id="val-reverb" class="text-[10px] font-mono text-purple-400">0%</span>
                 </div>
                 <input type="range" id="slider-reverb" min="0" max="1" value="0" step="0.01">
             </div>
 
-            <!-- 7. Delay / Echo -->
-            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+            <!-- 11. Echo -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
                 <div class="flex justify-between items-center mb-3">
-                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="copy" class="w-4 h-4 text-teal-400"></i> Echo</span>
-                    <span id="val-delay" class="text-xs font-mono text-purple-400">0%</span>
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="copy" class="w-3.5 h-3.5 text-teal-400"></i> Echo</span>
+                    <span id="val-delay" class="text-[10px] font-mono text-purple-400">0%</span>
                 </div>
                 <input type="range" id="slider-delay" min="0" max="1" value="0" step="0.01">
             </div>
 
-            <!-- 8. Lo-Fi Filter -->
-            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+            <!-- 12. Chorus -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
                 <div class="flex justify-between items-center mb-3">
-                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="coffee" class="w-4 h-4 text-orange-400"></i> Lo-Fi Muffle</span>
-                    <span id="val-lofi" class="text-xs font-mono text-purple-400">0%</span>
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="users" class="w-3.5 h-3.5 text-sky-400"></i> Chorus</span>
+                    <span id="val-chorus" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-chorus" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 13. Vibrato -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="waveform" class="w-3.5 h-3.5 text-fuchsia-400"></i> Vibrato</span>
+                    <span id="val-vibrato" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-vibrato" min="0" max="0.005" value="0" step="0.0001">
+            </div>
+
+            <!-- 14. Lo-Fi -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="coffee" class="w-3.5 h-3.5 text-orange-400"></i> Lo-Fi</span>
+                    <span id="val-lofi" class="text-[10px] font-mono text-purple-400">0%</span>
                 </div>
                 <input type="range" id="slider-lofi" min="0" max="100" value="0" step="1">
             </div>
 
-            <!-- 9. Distortion -->
-            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+            <!-- 15. Underwater -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
                 <div class="flex justify-between items-center mb-3">
-                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="zap" class="w-4 h-4 text-red-400"></i> Distortion</span>
-                    <span id="val-dist" class="text-xs font-mono text-purple-400">0%</span>
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="droplets" class="w-3.5 h-3.5 text-blue-500"></i> Underwater</span>
+                    <span id="val-underwater" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-underwater" min="0" max="100" value="0" step="1">
+            </div>
+
+            <!-- 16. Telephone -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="phone" class="w-3.5 h-3.5 text-zinc-400"></i> Telephone</span>
+                    <span id="val-telephone" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-telephone" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 17. Distortion -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="zap" class="w-3.5 h-3.5 text-red-400"></i> Distortion</span>
+                    <span id="val-dist" class="text-[10px] font-mono text-purple-400">0%</span>
                 </div>
                 <input type="range" id="slider-dist" min="0" max="100" value="0" step="1">
             </div>
 
-            <!-- 10. Tremolo -->
-            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+            <!-- 18. Bitcrusher -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
                 <div class="flex justify-between items-center mb-3">
-                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="activity" class="w-4 h-4 text-indigo-400"></i> Tremolo</span>
-                    <span id="val-tremolo" class="text-xs font-mono text-purple-400">0%</span>
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="cpu" class="w-3.5 h-3.5 text-lime-400"></i> 8-Bitcrush</span>
+                    <span id="val-bitcrusher" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-bitcrusher" min="0" max="100" value="0" step="1">
+            </div>
+
+            <!-- 19. Phaser -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="aperture" class="w-3.5 h-3.5 text-orange-500"></i> Phaser</span>
+                    <span id="val-phaser" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-phaser" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 20. Tremolo -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="activity" class="w-3.5 h-3.5 text-indigo-400"></i> Tremolo</span>
+                    <span id="val-tremolo" class="text-[10px] font-mono text-purple-400">0%</span>
                 </div>
                 <input type="range" id="slider-tremolo" min="0" max="1" value="0" step="0.01">
             </div>
 
-            <!-- 11. Night Mode (Compressor) -->
-            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+            <!-- 21. Gater -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
                 <div class="flex justify-between items-center mb-3">
-                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="moon" class="w-4 h-4 text-gray-300"></i> Night Mode</span>
-                    <span id="val-night" class="text-xs font-mono text-purple-400">Off</span>
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="scissors" class="w-3.5 h-3.5 text-red-500"></i> Chopper Gater</span>
+                    <span id="val-gater" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-gater" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 22. Night Mode -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="moon" class="w-3.5 h-3.5 text-gray-300"></i> Night Mode</span>
+                    <span id="val-night" class="text-[10px] font-mono text-purple-400">Off</span>
                 </div>
                 <input type="range" id="slider-night" min="0" max="100" value="0" step="1">
             </div>
 
-            <!-- Master Volume -->
-            <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+            <!-- 24. Auto-Wah -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
                 <div class="flex justify-between items-center mb-3">
-                    <span class="text-sm font-semibold flex items-center gap-2"><i data-lucide="volume-2" class="w-4 h-4 text-white"></i> Master Volume</span>
-                    <span id="val-vol" class="text-xs font-mono text-purple-400">100%</span>
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="music" class="w-3.5 h-3.5 text-pink-500"></i> Auto-Wah</span>
+                    <span id="val-wah" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-wah" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 25. Robotize (Ring Mod) -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="bot" class="w-3.5 h-3.5 text-cyan-300"></i> Robotize</span>
+                    <span id="val-robot" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-robot" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 26. Flanger -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="wind" class="w-3.5 h-3.5 text-teal-300"></i> Flanger</span>
+                    <span id="val-flanger" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-flanger" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 27. Ping-Pong Delay -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="arrow-left-right" class="w-3.5 h-3.5 text-yellow-300"></i> Ping-Pong</span>
+                    <span id="val-pingpong" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-pingpong" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 28. Vinyl Dust -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="flame" class="w-3.5 h-3.5 text-orange-600"></i> Vinyl Dust</span>
+                    <span id="val-vinylcrackle" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-vinylcrackle" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 29. Modern Pop Vocal -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="mic-2" class="w-3.5 h-3.5 text-indigo-300"></i> Modern Pop Vocal</span>
+                    <span id="val-autotune" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-autotune" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 30. Megaphone (NEW) -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="megaphone" class="w-3.5 h-3.5 text-red-500"></i> Megaphone</span>
+                    <span id="val-megaphone" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-megaphone" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 31. Filter Sweep (NEW) -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="tornado" class="w-3.5 h-3.5 text-teal-400"></i> Filter Sweep</span>
+                    <span id="val-sweep" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-sweep" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 32. Through Wall (NEW) -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="brick-wall" class="w-3.5 h-3.5 text-stone-400"></i> Through Wall</span>
+                    <span id="val-wall" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-wall" min="0" max="100" value="0" step="1">
+            </div>
+
+            <!-- 33. Overdrive Fuzz (NEW) -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="flame" class="w-3.5 h-3.5 text-orange-500"></i> Overdrive Fuzz</span>
+                    <span id="val-fuzz" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-fuzz" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 34. AM Transmit (NEW) -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="radio-tower" class="w-3.5 h-3.5 text-green-300"></i> AM Transmit</span>
+                    <span id="val-am" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-am" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- 35. Space Cave (NEW) -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="mountain-snow" class="w-3.5 h-3.5 text-blue-200"></i> Space Cave</span>
+                    <span id="val-cave" class="text-[10px] font-mono text-purple-400">0%</span>
+                </div>
+                <input type="range" id="slider-cave" min="0" max="1" value="0" step="0.01">
+            </div>
+
+            <!-- Master Volume -->
+            <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 hover:border-purple-500/50 transition col-span-2 sm:col-span-1 lg:col-span-2 2xl:col-span-1">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-semibold flex items-center gap-1.5"><i data-lucide="volume-2" class="w-3.5 h-3.5 text-white"></i> Master Vol</span>
+                    <span id="val-vol" class="text-[10px] font-mono text-purple-400">100%</span>
                 </div>
                 <input type="range" id="slider-vol" min="0" max="2" value="1" step="0.01">
             </div>
 
+        </div>
+    </div>
+
+    <!-- NEW: iTunes Search Modal -->
+    <div id="itunes-modal" class="fixed inset-0 z-[110] bg-black/90 hidden flex-col items-center p-4 pt-20">
+        <div class="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl p-6 shadow-2xl flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="music" class="text-blue-400"></i> iTunes Previews</h2>
+                <button id="btn-close-itunes" class="text-gray-400 hover:text-white transition"><i data-lucide="x"></i></button>
+            </div>
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="itunes-input" placeholder="Search for a song, artist, or album..." class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition">
+                <button id="btn-do-itunes-search" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg transition font-bold flex items-center gap-2"><i data-lucide="search" class="w-4 h-4"></i> Search</button>
+            </div>
+            <div id="itunes-results" class="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                <div class="text-center text-gray-500 mt-10">Search to discover 30-second audio previews directly from Apple Music.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: Video Preview Modal -->
+    <div id="video-modal" class="fixed inset-0 z-[100] bg-black/95 hidden flex-col items-center justify-center p-4">
+        <h2 class="text-2xl font-bold text-white mb-4">🎥 Video Render Complete!</h2>
+        <video id="preview-video" controls class="w-full max-w-4xl aspect-video bg-gray-900 rounded-lg shadow-[0_0_40px_rgba(168,85,247,0.3)] border border-gray-700"></video>
+        <div class="flex gap-4 mt-6">
+            <button id="btn-close-modal" class="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition font-medium border border-gray-600">Close Preview</button>
+            <button id="btn-download-modal" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:scale-105 text-white rounded-lg transition font-bold flex items-center gap-2 shadow-lg">
+                <i data-lucide="download" class="w-5 h-5"></i> Download Video File
+            </button>
+        </div>
+        <div class="bg-gray-900 border border-gray-700 p-4 rounded-lg mt-6 max-w-2xl text-center">
+            <p class="text-gray-300 text-sm">
+                <strong class="text-purple-400">Discord Tip:</strong> Because this video is rendered live in your browser, it lacks a standard "duration header". If Discord shows it as a downloadable file instead of a video player, <strong>wait 30-60 seconds</strong>. Discord's servers will process the video and automatically convert it into an embedded player!
+            </p>
         </div>
     </div>
 
@@ -238,13 +500,22 @@
         let nodes = {}; // Store Web Audio nodes here
         let animationId;
 
-        // Ensure canvas sizing is correct
-        function resizeCanvas() {
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = canvas.parentElement.clientHeight;
+        // Draw initial placeholder logo before music starts
+        function drawInitialCanvas() {
+            canvasCtx.fillStyle = '#030712'; // bg-gray-950
+            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            canvasCtx.font = "bold 100px sans-serif";
+            canvasCtx.textAlign = "center";
+            canvasCtx.textBaseline = "middle";
+            canvasCtx.fillStyle = "#a855f7"; // purple-500
+            canvasCtx.fillText("SONICFORGE", canvas.width/2, canvas.height/2 - 20);
+            
+            canvasCtx.font = "30px sans-serif";
+            canvasCtx.fillStyle = "#6b7280"; // gray-500
+            canvasCtx.fillText("A U D I O   L A B O R A T O R Y", canvas.width/2, canvas.height/2 + 50);
         }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+        drawInitialCanvas();
 
         // Formats time in seconds to M:SS
         const formatTime = (time) => {
@@ -261,114 +532,478 @@
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             track = audioCtx.createMediaElementSource(audioElement);
 
-            // 1. Bass Boost (LowShelf)
+            // Mixer to combine File and Mic inputs
+            nodes.inputMixer = audioCtx.createGain();
+            nodes.inputMixer.gain.value = 1;
+            track.connect(nodes.inputMixer);
+
+            // 1. Bass & Sub-Bass Boost
+            nodes.subbass = audioCtx.createBiquadFilter();
+            nodes.subbass.type = 'lowshelf';
+            nodes.subbass.frequency.value = 60;
+            nodes.subbass.gain.value = 0;
+
             nodes.bass = audioCtx.createBiquadFilter();
             nodes.bass.type = 'lowshelf';
-            nodes.bass.frequency.value = 150; // Boost frequencies below 150Hz
+            nodes.bass.frequency.value = 150;
             nodes.bass.gain.value = 0;
 
-            // NEW: Makeup volume to keep the song loud when bass is boosted
             nodes.bassMakeup = audioCtx.createGain();
             nodes.bassMakeup.gain.value = 1;
 
-            // 2. Treble Boost (HighShelf)
+            // 2. Treble & Brilliance Boost
             nodes.treble = audioCtx.createBiquadFilter();
             nodes.treble.type = 'highshelf';
             nodes.treble.frequency.value = 4000;
             nodes.treble.gain.value = 0;
 
-            // 3. Distortion (WaveShaper)
+            nodes.brilliance = audioCtx.createBiquadFilter();
+            nodes.brilliance.type = 'highshelf';
+            nodes.brilliance.frequency.value = 8000;
+            nodes.brilliance.gain.value = 0;
+
+            // 3. Filters (Lo-Fi & Underwater)
+            nodes.lofi = audioCtx.createBiquadFilter();
+            nodes.lofi.type = 'lowpass';
+            nodes.lofi.frequency.value = 22050; 
+            
+            nodes.underwater = audioCtx.createBiquadFilter();
+            nodes.underwater.type = 'lowpass';
+            nodes.underwater.frequency.value = 22050;
+
+            // 4. Telephone (Bandpass Wet/Dry)
+            nodes.teleIn = audioCtx.createGain();
+            nodes.teleDry = audioCtx.createGain();
+            nodes.teleWet = audioCtx.createGain();
+            nodes.teleDry.gain.value = 1; nodes.teleWet.gain.value = 0;
+            nodes.teleFilter = audioCtx.createBiquadFilter();
+            nodes.teleFilter.type = 'bandpass';
+            nodes.teleFilter.frequency.value = 1500;
+            nodes.teleFilter.Q.value = 2;
+            nodes.teleOut = audioCtx.createGain();
+
+            nodes.teleIn.connect(nodes.teleDry).connect(nodes.teleOut);
+            nodes.teleIn.connect(nodes.teleWet).connect(nodes.teleFilter).connect(nodes.teleOut);
+
+            // 5. Destructive (Bitcrusher & Distortion)
+            nodes.bitcrusher = audioCtx.createWaveShaper();
+            
             nodes.distortion = audioCtx.createWaveShaper();
             nodes.distortion.oversample = '4x';
             nodes.distortion.curve = makeDistortionCurve(0);
 
-            // 4. Lo-Fi (Lowpass Filter)
-            nodes.lofi = audioCtx.createBiquadFilter();
-            nodes.lofi.type = 'lowpass';
-            nodes.lofi.frequency.value = 22050; // Start fully open
+            // 6. Pitch/Phase (Vibrato & Phaser)
+            nodes.vibrato = audioCtx.createDelay();
+            nodes.vibrato.delayTime.value = 0.02;
+            nodes.vibratoLFO = audioCtx.createOscillator();
+            nodes.vibratoLFOGain = audioCtx.createGain();
+            nodes.vibratoLFO.frequency.value = 5;
+            nodes.vibratoLFOGain.gain.value = 0; 
+            nodes.vibratoLFO.connect(nodes.vibratoLFOGain).connect(nodes.vibrato.delayTime);
+            nodes.vibratoLFO.start();
 
-            // 5. Night Mode (DynamicsCompressor)
+            nodes.phaserIn = audioCtx.createGain();
+            nodes.phaserDry = audioCtx.createGain();
+            nodes.phaserWet = audioCtx.createGain();
+            nodes.phaserDry.gain.value = 1; nodes.phaserWet.gain.value = 0;
+            nodes.phaserFilter = audioCtx.createBiquadFilter();
+            nodes.phaserFilter.type = 'allpass';
+            nodes.phaserLFO = audioCtx.createOscillator();
+            nodes.phaserLFO.frequency.value = 0.5;
+            nodes.phaserLFOGain = audioCtx.createGain();
+            nodes.phaserLFOGain.gain.value = 800; // Sweep depth
+            nodes.phaserLFO.connect(nodes.phaserLFOGain).connect(nodes.phaserFilter.frequency);
+            nodes.phaserLFO.start();
+            nodes.phaserOut = audioCtx.createGain();
+            
+            nodes.phaserIn.connect(nodes.phaserDry).connect(nodes.phaserOut);
+            nodes.phaserIn.connect(nodes.phaserWet).connect(nodes.phaserFilter).connect(nodes.phaserOut);
+
+            // 7. Dynamics (Compressor, Tremolo, Gater)
             nodes.compressor = audioCtx.createDynamicsCompressor();
             nodes.compressor.threshold.value = 0; 
             nodes.compressor.ratio.value = 1;
 
-            // 6. Tremolo (Gain Modulated by LFO)
             nodes.tremolo = audioCtx.createGain();
             nodes.tremoloLFO = audioCtx.createOscillator();
             nodes.tremoloLFOGain = audioCtx.createGain();
-            nodes.tremoloLFO.frequency.value = 6; // 6Hz wobble
+            nodes.tremoloLFO.frequency.value = 6;
             nodes.tremoloLFOGain.gain.value = 0;
-            nodes.tremoloLFO.connect(nodes.tremoloLFOGain);
-            nodes.tremoloLFOGain.connect(nodes.tremolo.gain);
+            nodes.tremoloLFO.connect(nodes.tremoloLFOGain).connect(nodes.tremolo.gain);
             nodes.tremoloLFO.start();
 
-            // 7. 8D Panner (StereoPanner Modulated by LFO)
+            // Gater uses phase-cancellation to chop audio perfectly
+            nodes.gaterIn = audioCtx.createGain();
+            nodes.gaterDry = audioCtx.createGain();
+            nodes.gaterWet = audioCtx.createGain();
+            nodes.gaterDry.gain.value = 1; nodes.gaterWet.gain.value = 0;
+            nodes.gaterLFO = audioCtx.createOscillator();
+            nodes.gaterLFO.type = 'square';
+            nodes.gaterLFO.frequency.value = 8;
+            nodes.gaterLFOGain = audioCtx.createGain();
+            nodes.gaterLFOGain.gain.value = 0; 
+            nodes.gaterLFO.connect(nodes.gaterLFOGain).connect(nodes.gaterWet.gain);
+            nodes.gaterLFO.start();
+            nodes.gaterOut = audioCtx.createGain();
+            nodes.gaterIn.connect(nodes.gaterDry).connect(nodes.gaterOut);
+            nodes.gaterIn.connect(nodes.gaterWet).connect(nodes.gaterOut);
+
+            // 11. Wah-Wah (Auto-Wah)
+            nodes.wahIn = audioCtx.createGain();
+            nodes.wahDry = audioCtx.createGain(); nodes.wahDry.gain.value = 1;
+            nodes.wahWet = audioCtx.createGain(); nodes.wahWet.gain.value = 0;
+            nodes.wahFilter = audioCtx.createBiquadFilter();
+            nodes.wahFilter.type = 'bandpass';
+            nodes.wahFilter.Q.value = 8;
+            nodes.wahFilter.frequency.value = 1000;
+            nodes.wahLFO = audioCtx.createOscillator();
+            nodes.wahLFO.frequency.value = 3; 
+            nodes.wahLFOGain = audioCtx.createGain();
+            nodes.wahLFOGain.gain.value = 800; 
+            nodes.wahLFO.connect(nodes.wahLFOGain).connect(nodes.wahFilter.frequency);
+            nodes.wahLFO.start();
+            nodes.wahOut = audioCtx.createGain();
+            nodes.wahIn.connect(nodes.wahDry).connect(nodes.wahOut);
+            nodes.wahIn.connect(nodes.wahWet).connect(nodes.wahFilter).connect(nodes.wahOut);
+
+            // 12. Robotize (Ring Modulator)
+            nodes.ringIn = audioCtx.createGain();
+            nodes.ringDry = audioCtx.createGain(); nodes.ringDry.gain.value = 1;
+            nodes.ringWet = audioCtx.createGain(); nodes.ringWet.gain.value = 0;
+            nodes.ringMod = audioCtx.createGain(); nodes.ringMod.gain.value = 0; 
+            nodes.ringOsc = audioCtx.createOscillator();
+            nodes.ringOsc.type = 'sine';
+            nodes.ringOsc.frequency.value = 50; // Low frequency grinding robot sound
+            nodes.ringOsc.connect(nodes.ringMod.gain);
+            nodes.ringOsc.start();
+            nodes.ringOut = audioCtx.createGain();
+            nodes.ringIn.connect(nodes.ringDry).connect(nodes.ringOut);
+            nodes.ringIn.connect(nodes.ringMod).connect(nodes.ringWet).connect(nodes.ringOut);
+
+            // 13. Flanger
+            nodes.flangerIn = audioCtx.createGain();
+            nodes.flangerDry = audioCtx.createGain(); nodes.flangerDry.gain.value = 1;
+            nodes.flangerWet = audioCtx.createGain(); nodes.flangerWet.gain.value = 0;
+            nodes.flangerDelay = audioCtx.createDelay();
+            nodes.flangerDelay.delayTime.value = 0.005;
+            nodes.flangerFeedback = audioCtx.createGain();
+            nodes.flangerFeedback.gain.value = 0.7;
+            nodes.flangerLFO = audioCtx.createOscillator();
+            nodes.flangerLFO.frequency.value = 0.5;
+            nodes.flangerLFOGain = audioCtx.createGain();
+            nodes.flangerLFOGain.gain.value = 0.004;
+            nodes.flangerLFO.connect(nodes.flangerLFOGain).connect(nodes.flangerDelay.delayTime);
+            nodes.flangerLFO.start();
+            nodes.flangerOut = audioCtx.createGain();
+            nodes.flangerIn.connect(nodes.flangerDry).connect(nodes.flangerOut);
+            nodes.flangerIn.connect(nodes.flangerWet).connect(nodes.flangerDelay).connect(nodes.flangerOut);
+            nodes.flangerDelay.connect(nodes.flangerFeedback).connect(nodes.flangerDelay);
+
+            // 14. Ping-Pong Delay
+            nodes.pingIn = audioCtx.createGain();
+            nodes.pingWet = audioCtx.createGain(); nodes.pingWet.gain.value = 0;
+            nodes.pingDelayL = audioCtx.createDelay(); nodes.pingDelayL.delayTime.value = 0.4;
+            nodes.pingDelayR = audioCtx.createDelay(); nodes.pingDelayR.delayTime.value = 0.4;
+            nodes.pingPanL = audioCtx.createStereoPanner(); nodes.pingPanL.pan.value = -1;
+            nodes.pingPanR = audioCtx.createStereoPanner(); nodes.pingPanR.pan.value = 1;
+            nodes.pingFeedback = audioCtx.createGain(); nodes.pingFeedback.gain.value = 0.6;
+            nodes.pingIn.connect(nodes.pingDelayL);
+            nodes.pingDelayL.connect(nodes.pingPanL).connect(nodes.pingWet);
+            nodes.pingDelayL.connect(nodes.pingDelayR);
+            nodes.pingDelayR.connect(nodes.pingPanR).connect(nodes.pingWet);
+            nodes.pingDelayR.connect(nodes.pingFeedback).connect(nodes.pingDelayL);
+
+            // 15. Vinyl Dust (Procedural Noise)
+            nodes.noiseWet = audioCtx.createGain(); nodes.noiseWet.gain.value = 0;
+            nodes.noiseFilter = audioCtx.createBiquadFilter();
+            nodes.noiseFilter.type = 'lowpass';
+            nodes.noiseFilter.frequency.value = 2500; 
+            const bufferSize = audioCtx.sampleRate * 2; 
+            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                const isPop = Math.random() > 0.9997;
+                output[i] = isPop ? (Math.random() * 2 - 1) * 0.9 : (Math.random() * 2 - 1) * 0.05;
+            }
+            nodes.noiseSource = audioCtx.createBufferSource();
+            nodes.noiseSource.buffer = noiseBuffer;
+            nodes.noiseSource.loop = true;
+            nodes.noiseSource.start();
+            nodes.noiseSource.connect(nodes.noiseFilter).connect(nodes.noiseWet);
+
+            // 16. Modern Pop Vocal Chain
+            nodes.atIn = audioCtx.createGain();
+            nodes.atDry = audioCtx.createGain(); nodes.atDry.gain.value = 1;
+            nodes.atWet = audioCtx.createGain(); nodes.atWet.gain.value = 0;
+            
+            nodes.vocalComp = audioCtx.createDynamicsCompressor();
+            nodes.vocalComp.threshold.value = -40;
+            nodes.vocalComp.ratio.value = 12;
+            nodes.vocalComp.attack.value = 0.003;
+            nodes.vocalComp.release.value = 0.05;
+
+            nodes.vocalHP = audioCtx.createBiquadFilter();
+            nodes.vocalHP.type = 'highpass';
+            nodes.vocalHP.frequency.value = 120;
+            nodes.vocalAir = audioCtx.createBiquadFilter();
+            nodes.vocalAir.type = 'highshelf';
+            nodes.vocalAir.frequency.value = 6000;
+            nodes.vocalAir.gain.value = 12;
+
+            nodes.vocalChorus = audioCtx.createDelay();
+            nodes.vocalChorus.delayTime.value = 0.005;
+            nodes.vocalChorusLFO = audioCtx.createOscillator();
+            nodes.vocalChorusLFO.frequency.value = 6;
+            nodes.vocalChorusLFOGain = audioCtx.createGain();
+            nodes.vocalChorusLFOGain.gain.value = 0.002;
+            nodes.vocalChorusLFO.connect(nodes.vocalChorusLFOGain).connect(nodes.vocalChorus.delayTime);
+            nodes.vocalChorusLFO.start();
+
+            nodes.atOut = audioCtx.createGain();
+            nodes.atIn.connect(nodes.atDry).connect(nodes.atOut);
+            nodes.atIn.connect(nodes.vocalHP).connect(nodes.vocalComp).connect(nodes.vocalAir);
+            nodes.vocalAir.connect(nodes.vocalChorus).connect(nodes.atWet);
+            nodes.vocalAir.connect(nodes.atWet); 
+            nodes.atWet.connect(nodes.atOut);
+
+            // NEW 17. Megaphone
+            nodes.megaIn = audioCtx.createGain();
+            nodes.megaDry = audioCtx.createGain(); nodes.megaDry.gain.value = 1;
+            nodes.megaWet = audioCtx.createGain(); nodes.megaWet.gain.value = 0;
+            nodes.megaFilter = audioCtx.createBiquadFilter();
+            nodes.megaFilter.type = 'bandpass';
+            nodes.megaFilter.frequency.value = 1000;
+            nodes.megaFilter.Q.value = 5;
+            nodes.megaDist = audioCtx.createWaveShaper();
+            nodes.megaDist.curve = makeDistortionCurve(40);
+            nodes.megaIn.connect(nodes.megaDry);
+            nodes.megaIn.connect(nodes.megaFilter).connect(nodes.megaDist).connect(nodes.megaWet);
+            nodes.megaOut = audioCtx.createGain();
+            nodes.megaDry.connect(nodes.megaOut);
+            nodes.megaWet.connect(nodes.megaOut);
+
+            // NEW 18. Filter Sweep
+            nodes.sweepIn = audioCtx.createGain();
+            nodes.sweepDry = audioCtx.createGain(); nodes.sweepDry.gain.value = 1;
+            nodes.sweepWet = audioCtx.createGain(); nodes.sweepWet.gain.value = 0;
+            nodes.sweepFilter = audioCtx.createBiquadFilter();
+            nodes.sweepFilter.type = 'lowpass';
+            nodes.sweepFilter.Q.value = 15; // High resonance
+            nodes.sweepLFO = audioCtx.createOscillator();
+            nodes.sweepLFO.frequency.value = 0.15; // Very slow sweep
+            nodes.sweepLFOGain = audioCtx.createGain();
+            nodes.sweepLFOGain.gain.value = 4000;
+            nodes.sweepFilter.frequency.value = 4200; 
+            nodes.sweepLFO.connect(nodes.sweepLFOGain).connect(nodes.sweepFilter.frequency);
+            nodes.sweepLFO.start();
+            nodes.sweepIn.connect(nodes.sweepDry);
+            nodes.sweepIn.connect(nodes.sweepFilter).connect(nodes.sweepWet);
+            nodes.sweepOut = audioCtx.createGain();
+            nodes.sweepDry.connect(nodes.sweepOut);
+            nodes.sweepWet.connect(nodes.sweepOut);
+
+            // NEW 19. Through Wall
+            nodes.wallFilter = audioCtx.createBiquadFilter();
+            nodes.wallFilter.type = 'lowpass';
+            nodes.wallFilter.frequency.value = 22050; // default off
+
+            // NEW 20. Overdrive Fuzz
+            nodes.fuzzIn = audioCtx.createGain();
+            nodes.fuzzDry = audioCtx.createGain(); nodes.fuzzDry.gain.value = 1;
+            nodes.fuzzWet = audioCtx.createGain(); nodes.fuzzWet.gain.value = 0;
+            nodes.fuzzNode = audioCtx.createWaveShaper();
+            nodes.fuzzNode.oversample = '4x';
+            nodes.fuzzNode.curve = makeDistortionCurve(100); 
+            nodes.fuzzPre = audioCtx.createGain(); nodes.fuzzPre.gain.value = 8; // Heavy pre-gain push
+            nodes.fuzzPost = audioCtx.createGain(); nodes.fuzzPost.gain.value = 0.15; // Volume makeup
+            nodes.fuzzIn.connect(nodes.fuzzDry);
+            nodes.fuzzIn.connect(nodes.fuzzPre).connect(nodes.fuzzNode).connect(nodes.fuzzPost).connect(nodes.fuzzWet);
+            nodes.fuzzOut = audioCtx.createGain();
+            nodes.fuzzDry.connect(nodes.fuzzOut);
+            nodes.fuzzWet.connect(nodes.fuzzOut);
+
+            // NEW 21. AM Transmit
+            nodes.amIn = audioCtx.createGain();
+            nodes.amDry = audioCtx.createGain(); nodes.amDry.gain.value = 1;
+            nodes.amWet = audioCtx.createGain(); nodes.amWet.gain.value = 0;
+            nodes.amMod = audioCtx.createGain(); nodes.amMod.gain.value = 0;
+            nodes.amOsc = audioCtx.createOscillator();
+            nodes.amOsc.type = 'square';
+            nodes.amOsc.frequency.value = 400; // Harsh AM carrier
+            nodes.amOsc.connect(nodes.amMod.gain);
+            nodes.amOsc.start();
+            nodes.amIn.connect(nodes.amDry);
+            nodes.amIn.connect(nodes.amMod).connect(nodes.amWet);
+            nodes.amOut = audioCtx.createGain();
+            nodes.amDry.connect(nodes.amOut);
+            nodes.amWet.connect(nodes.amOut);
+
+            // NEW 22. Space Cave (Setup parallel routing)
+            nodes.caveWet = audioCtx.createGain(); nodes.caveWet.gain.value = 0;
+            nodes.caveDelay = audioCtx.createDelay(10);
+            nodes.caveDelay.delayTime.value = 1.2; // Massive echo
+            nodes.caveFeedback = audioCtx.createGain(); nodes.caveFeedback.gain.value = 0.85;
+            nodes.caveReverb = audioCtx.createConvolver();
+            nodes.caveReverb.buffer = createReverbBuffer(audioCtx, 8); // 8 second decay
+
+            // 8. Space/Panning (8D, Auto-Pan, Surround)
             nodes.panner = audioCtx.createStereoPanner();
             nodes.pannerLFO = audioCtx.createOscillator();
             nodes.pannerLFOGain = audioCtx.createGain();
-            nodes.pannerLFO.frequency.value = 0.2; // 0.2Hz sweep (slow)
+            nodes.pannerLFO.frequency.value = 0.2;
             nodes.pannerLFOGain.gain.value = 0;
-            nodes.pannerLFO.connect(nodes.pannerLFOGain);
-            nodes.pannerLFOGain.connect(nodes.panner.pan);
+            nodes.pannerLFO.connect(nodes.pannerLFOGain).connect(nodes.panner.pan);
             nodes.pannerLFO.start();
 
-            // 8. Master Gain & Analyser
+            nodes.autopan = audioCtx.createStereoPanner();
+            nodes.autopanLFO = audioCtx.createOscillator();
+            nodes.autopanLFOGain = audioCtx.createGain();
+            nodes.autopanLFO.frequency.value = 3; 
+            nodes.autopanLFOGain.gain.value = 0;
+            nodes.autopanLFO.connect(nodes.autopanLFOGain).connect(nodes.autopan.pan);
+            nodes.autopanLFO.start();
+
+            nodes.surroundIn = audioCtx.createGain();
+            nodes.surroundDry = audioCtx.createGain();
+            nodes.surroundWet = audioCtx.createGain();
+            nodes.surroundDry.gain.value = 1; nodes.surroundWet.gain.value = 0;
+            nodes.splitter = audioCtx.createChannelSplitter(2);
+            nodes.merger = audioCtx.createChannelMerger(2);
+            nodes.haasDelay = audioCtx.createDelay();
+            nodes.haasDelay.delayTime.value = 0.025; 
+            nodes.surroundIn.connect(nodes.surroundDry);
+            nodes.surroundIn.connect(nodes.splitter);
+            nodes.splitter.connect(nodes.merger, 0, 0); 
+            nodes.splitter.connect(nodes.haasDelay, 1); 
+            nodes.haasDelay.connect(nodes.merger, 0, 1); 
+            nodes.merger.connect(nodes.surroundWet);
+
+            // 9. Master Gain & Analyser
             masterGain = audioCtx.createGain();
             masterGain.gain.value = 1;
             analyser = audioCtx.createAnalyser();
             analyser.fftSize = 256;
+            analyser.smoothingTimeConstant = 0.85;
 
-            // 9. Delay (Echo) - Parallel Routing
+            // MediaStream output destination to capture processed audio for video download
+            nodes.streamDestination = audioCtx.createMediaStreamDestination();
+            masterGain.connect(nodes.streamDestination);
+
+            // 10. Parallel Loop Effects (Echo, Reverb, Chorus)
             nodes.delay = audioCtx.createDelay(5.0);
             nodes.delay.delayTime.value = 0.4;
             nodes.delayFeedback = audioCtx.createGain();
-            nodes.delayFeedback.gain.value = 0.4; // Decay length
+            nodes.delayFeedback.gain.value = 0.4;
             nodes.delayWet = audioCtx.createGain();
-            nodes.delayWet.gain.value = 0; // Starts dry
+            nodes.delayWet.gain.value = 0; 
 
-            // 10. Reverb - Parallel Routing
             nodes.reverb = audioCtx.createConvolver();
-            nodes.reverb.buffer = createReverbBuffer(audioCtx, 3); // 3 sec decay
+            nodes.reverb.buffer = createReverbBuffer(audioCtx, 3);
             nodes.reverbWet = audioCtx.createGain();
-            nodes.reverbWet.gain.value = 0; // Starts dry
+            nodes.reverbWet.gain.value = 0; 
 
-            // --- Connect the Graph ---
-            // Main Series Chain
-            track.connect(nodes.bass)
+            nodes.chorus = audioCtx.createDelay();
+            nodes.chorus.delayTime.value = 0.03;
+            nodes.chorusLFO = audioCtx.createOscillator();
+            nodes.chorusLFOGain = audioCtx.createGain();
+            nodes.chorusLFO.frequency.value = 1.2;
+            nodes.chorusLFOGain.gain.value = 0.01;
+            nodes.chorusLFO.connect(nodes.chorusLFOGain).connect(nodes.chorus.delayTime);
+            nodes.chorusLFO.start();
+            nodes.chorusWet = audioCtx.createGain();
+            nodes.chorusWet.gain.value = 0;
+
+            // --- CONNECT THE SIGNAL CHAIN ---
+            
+            // Core Series Processing
+            nodes.inputMixer.connect(nodes.subbass)
+                 .connect(nodes.bass)
                  .connect(nodes.bassMakeup)
                  .connect(nodes.treble)
+                 .connect(nodes.brilliance)
                  .connect(nodes.lofi)
-                 .connect(nodes.distortion)
-                 .connect(nodes.compressor)
-                 .connect(nodes.tremolo)
-                 .connect(nodes.panner);
-
-            // Split from Panner to Master and Parallel Effects
-            nodes.panner.connect(masterGain);
+                 .connect(nodes.underwater)
+                 .connect(nodes.wallFilter)
+                 .connect(nodes.teleIn);
+                 
+            nodes.teleOut.connect(nodes.megaIn);
             
-            // Delay Loop
-            nodes.panner.connect(nodes.delay);
-            nodes.delay.connect(nodes.delayFeedback);
-            nodes.delayFeedback.connect(nodes.delay);
-            nodes.delay.connect(nodes.delayWet);
-            nodes.delayWet.connect(masterGain);
+            nodes.megaOut.connect(nodes.wahIn);
+                 
+            nodes.wahOut.connect(nodes.ringIn);
+            
+            nodes.ringOut.connect(nodes.amIn);
+            
+            nodes.amOut.connect(nodes.flangerIn);
+            
+            nodes.flangerOut.connect(nodes.bitcrusher)
+                 .connect(nodes.distortion)
+                 .connect(nodes.fuzzIn);
+                 
+            nodes.fuzzOut.connect(nodes.vibrato)
+                 .connect(nodes.phaserIn);
+                 
+            nodes.phaserOut.connect(nodes.sweepIn);
 
-            // Reverb Loop
-            nodes.panner.connect(nodes.reverb);
-            nodes.reverb.connect(nodes.reverbWet);
-            nodes.reverbWet.connect(masterGain);
+            nodes.sweepOut.connect(nodes.compressor)
+                 .connect(nodes.atIn);
 
-            // Output
-        masterGain.connect(analyser);
-        analyser.connect(audioCtx.destination);
-    }
+            nodes.atOut.connect(nodes.tremolo)
+                 .connect(nodes.gaterIn);
+                 
+            nodes.gaterOut.connect(nodes.panner)
+                 .connect(nodes.autopan)
+                 .connect(nodes.surroundIn);
 
-    // Helper: Generate Distortion Curve Math
-    function makeDistortionCurve(amount) {
-        if (amount === 0) return null; // Fix: Returning null bypasses the effect instead of muting the track
-        const k = amount;
-        const n_samples = 44100;
-        const curve = new Float32Array(n_samples);
+            // Connect dry and wet surround to Master
+            nodes.surroundDry.connect(masterGain);
+            nodes.surroundWet.connect(masterGain);
+            
+            // Connect procedural noise to Master
+            nodes.noiseWet.connect(masterGain);
+
+            // Send signal to parallel effects branching off AutoPan output
+            nodes.autopan.connect(nodes.delay);
+            nodes.delay.connect(nodes.delayFeedback).connect(nodes.delay).connect(nodes.delayWet).connect(masterGain);
+            
+            nodes.autopan.connect(nodes.pingIn);
+            nodes.pingWet.connect(masterGain);
+
+            nodes.autopan.connect(nodes.reverb);
+            nodes.reverb.connect(nodes.reverbWet).connect(masterGain);
+
+            nodes.autopan.connect(nodes.chorus);
+            nodes.chorus.connect(nodes.chorusWet).connect(masterGain);
+
+            // Space Cave Parallel Routing
+            nodes.autopan.connect(nodes.caveDelay);
+            nodes.caveDelay.connect(nodes.caveFeedback).connect(nodes.caveDelay);
+            nodes.caveDelay.connect(nodes.caveReverb).connect(nodes.caveWet).connect(masterGain);
+
+            // Output to Visualizer/Speakers
+            masterGain.connect(analyser);
+            analyser.connect(audioCtx.destination);
+        }
+
+        // Helper: Generate Bitcrush Curve Math
+        function makeBitcrushCurve(bits) {
+            if (bits === 0) return null; 
+            const n_samples = 44100;
+            const curve = new Float32Array(n_samples);
+            const step = Math.pow(0.5, bits);
+            for (let i = 0; i < n_samples; ++i) {
+                const x = i * 2 / n_samples - 1;
+                curve[i] = step * Math.round(x / step);
+            }
+            return curve;
+        }
+
+        // Helper: Generate Distortion Curve Math
+        function makeDistortionCurve(amount) {
+            if (amount === 0) return null; 
+            const k = amount;
+            const n_samples = 44100;
+            const curve = new Float32Array(n_samples);
             const deg = Math.PI / 180;
             for (let i = 0; i < n_samples; ++i) {
                 const x = i * 2 / n_samples - 1;
@@ -394,7 +1029,270 @@
 
         // --- UI & Event Listeners ---
 
-        // File Upload
+        const btnRecord = document.getElementById('btn-record');
+        const recordText = document.getElementById('record-text');
+        const btnExport = document.getElementById('btn-export');
+        const iconExport = document.getElementById('icon-export');
+        const iconExportStop = document.getElementById('icon-export-stop');
+
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+
+        let exportRecorder = null;
+        let exportChunks = [];
+        let isExporting = false;
+
+        // --- NEW: iTunes Integration Logic ---
+        const btnOpenItunes = document.getElementById('btn-open-itunes');
+        const btnCloseItunes = document.getElementById('btn-close-itunes');
+        const itunesModal = document.getElementById('itunes-modal');
+        const itunesInput = document.getElementById('itunes-input');
+        const btnDoItunesSearch = document.getElementById('btn-do-itunes-search');
+        const itunesResults = document.getElementById('itunes-results');
+
+        btnOpenItunes.addEventListener('click', () => {
+            itunesModal.classList.remove('hidden');
+            itunesModal.classList.add('flex');
+            itunesInput.focus();
+        });
+
+        btnCloseItunes.addEventListener('click', () => {
+            itunesModal.classList.add('hidden');
+            itunesModal.classList.remove('flex');
+        });
+
+        btnDoItunesSearch.addEventListener('click', performItunesSearch);
+        itunesInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') performItunesSearch(); });
+
+        async function performItunesSearch() {
+            const query = itunesInput.value.trim();
+            if(!query) return;
+            
+            itunesResults.innerHTML = '<div class="text-center text-blue-400 mt-10 font-medium">Searching iTunes Database...</div>';
+            
+            try {
+                // Fetch from Apple's public iTunes Search API
+                const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=15`);
+                const data = await res.json();
+                
+                if(data.results.length === 0) {
+                    itunesResults.innerHTML = '<div class="text-center text-gray-400 mt-10">No results found. Try another search.</div>';
+                    return;
+                }
+                
+                itunesResults.innerHTML = data.results.map(track => {
+                    // Safety escapes for track and artist names
+                    const safeTrackName = track.trackName.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                    const safeArtistName = track.artistName.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                    
+                    return `
+                    <div class="bg-gray-800 hover:bg-gray-700 p-3 rounded-xl flex items-center justify-between group cursor-pointer transition border border-gray-700 hover:border-blue-500" onclick="loadItunesPreview('${track.previewUrl}', '${safeTrackName}', '${safeArtistName}')">
+                        <div class="flex items-center gap-4 overflow-hidden">
+                            <img src="${track.artworkUrl60}" class="w-12 h-12 rounded-lg object-cover shadow-md">
+                            <div class="truncate">
+                                <div class="font-bold text-gray-100 truncate text-sm">${track.trackName}</div>
+                                <div class="text-xs text-blue-400 truncate">${track.artistName}</div>
+                            </div>
+                        </div>
+                        <button class="bg-blue-600 hover:bg-blue-500 text-white w-10 h-10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-lg shrink-0">
+                            <i data-lucide="play" class="w-4 h-4 ml-0.5"></i>
+                        </button>
+                    </div>
+                `}).join('');
+                lucide.createIcons(); // Re-initialize icons for newly injected HTML
+            } catch (err) {
+                console.error(err);
+                itunesResults.innerHTML = '<div class="text-center text-red-400 mt-10">Network error fetching results.</div>';
+            }
+        }
+
+        window.loadItunesPreview = (url, trackName, artistName) => {
+            // Stop mic if recording
+            if (isRecording) btnRecord.click(); 
+            
+            audioElement.crossOrigin = "anonymous"; // Ensure CORS passes for audio processing
+            audioElement.src = url;
+            document.getElementById('track-name').innerText = `${artistName} - ${trackName}`;
+            
+            playPauseBtn.disabled = false;
+            playPauseBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            btnExport.disabled = false;
+            
+            isPlaying = false;
+            iconPlay.classList.remove('hidden');
+            iconPause.classList.add('hidden');
+            cancelAnimationFrame(animationId);
+            drawInitialCanvas();
+            
+            itunesModal.classList.add('hidden');
+            itunesModal.classList.remove('flex');
+            
+            // Automatically play the preview!
+            togglePlay();
+        };
+
+        // Export Event Listener (Records HD Video for Discord)
+        btnExport.addEventListener('click', () => {
+            if (!isExporting) {
+                if (!audioCtx || !nodes.streamDestination) return;
+                
+                exportChunks = [];
+                
+                // Capture the visualizer canvas as a video stream (30 FPS)
+                const canvasStream = canvas.captureStream(30);
+                const audioStream = nodes.streamDestination.stream;
+                
+                // Combine the 720p HD canvas video and processed audio into a single A/V stream
+                const combinedStream = new MediaStream([
+                    ...canvasStream.getVideoTracks(),
+                    ...audioStream.getAudioTracks()
+                ]);
+
+                // Find the best Discord-friendly format your browser supports
+                const types = [
+                    'video/mp4', // Best for Discord (Safari supports this)
+                    'video/webm;codecs=h264,opus', // Great for Discord
+                    'video/webm;codecs=vp8,opus', // Standard WebM
+                    'video/webm' // Fallback
+                ];
+                let selectedType = types.find(type => MediaRecorder.isTypeSupported(type)) || 'video/webm';
+                let extension = selectedType.includes('mp4') ? 'mp4' : 'webm';
+
+                exportRecorder = new MediaRecorder(combinedStream, { mimeType: selectedType });
+                
+                exportRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) exportChunks.push(e.data);
+                };
+                
+                exportRecorder.onstop = () => {
+                    // Bundle the recorded A/V chunks into a video file
+                    const blob = new Blob(exportChunks, { type: selectedType });
+                    const url = URL.createObjectURL(blob);
+                    
+                    // Show the Video Modal instead of instantly forcing a download
+                    const videoModal = document.getElementById('video-modal');
+                    const previewVideo = document.getElementById('preview-video');
+                    const btnDownloadModal = document.getElementById('btn-download-modal');
+                    const btnCloseModal = document.getElementById('btn-close-modal');
+                    
+                    previewVideo.src = url;
+                    videoModal.classList.remove('hidden');
+                    videoModal.classList.add('flex');
+                    
+                    btnDownloadModal.onclick = () => {
+                        let baseName = document.getElementById('track-name').innerText.replace(/\.[^/.]+$/, "");
+                        if (baseName === "No Track Loaded" || baseName.includes("Live") || baseName.includes("Auto-Tuned")) {
+                            baseName = "SonicForge_Export";
+                        }
+                        
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        a.download = `${baseName}_MusicVideo.${extension}`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    };
+                    
+                    btnCloseModal.onclick = () => {
+                        videoModal.classList.add('hidden');
+                        videoModal.classList.remove('flex');
+                        previewVideo.pause();
+                    };
+                };
+
+                exportRecorder.start();
+                isExporting = true;
+                
+                // Update UI
+                iconExport.classList.add('hidden');
+                iconExportStop.classList.remove('hidden');
+                btnExport.classList.add('border-red-500', 'bg-red-500/20');
+                btnExport.classList.remove('bg-gray-800');
+                btnExport.title = "Stop Recording & Preview";
+            } else {
+                exportRecorder.stop();
+                isExporting = false;
+                
+                // Restore UI
+                iconExportStop.classList.add('hidden');
+                iconExport.classList.remove('hidden');
+                btnExport.classList.remove('border-red-500', 'bg-red-500/20');
+                btnExport.classList.add('bg-gray-800');
+                btnExport.title = "Record Mix to Download";
+            }
+        });
+
+        btnRecord.addEventListener('click', async () => {
+            initAudioGraph(); // Ensure audio context is started
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } 
+                    });
+                    
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = (e) => {
+                        if (e.data.size > 0) audioChunks.push(e.data);
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        recordText.innerText = "Thinking... 🧠";
+                        btnRecord.classList.replace('bg-red-600', 'bg-purple-600');
+                        btnRecord.classList.replace('border-gray-700', 'border-purple-500');
+                        document.getElementById('track-name').innerText = "Processing Pitch Data...";
+
+                        stream.getTracks().forEach(track => track.stop());
+
+                        setTimeout(() => {
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                            const audioUrl = URL.createObjectURL(audioBlob);
+                            
+                            audioElement.src = audioUrl;
+                            document.getElementById('track-name').innerText = "🎤 Auto-Tuned Recording";
+                            
+                            playPauseBtn.disabled = false;
+                            playPauseBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                            btnExport.disabled = false;
+
+                            document.getElementById('slider-autotune').value = 1;
+                            if(nodes.atWet && nodes.atDry) {
+                                nodes.atWet.gain.value = 1;
+                                nodes.atDry.gain.value = 0;
+                            }
+                            updateText('val-autotune', '100%');
+
+                            recordText.innerText = "Record Mic";
+                            btnRecord.classList.replace('bg-purple-600', 'bg-gray-800');
+                            btnRecord.classList.replace('border-purple-500', 'border-gray-700');
+                            btnRecord.classList.replace('text-white', 'text-red-400');
+                            
+                            togglePlay();
+                        }, 2000); 
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    recordText.innerText = "Stop Recording ⏹";
+                    btnRecord.classList.replace('bg-gray-800', 'bg-red-600');
+                    btnRecord.classList.replace('text-red-400', 'text-white');
+                    document.getElementById('track-name').innerText = "🔴 Recording Live...";
+                    
+                } catch (err) {
+                    console.error("Mic access denied:", err);
+                    document.getElementById('track-name').innerText = "Mic Access Denied!";
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+            }
+        });
+
         fileInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -404,18 +1302,17 @@
                 
                 playPauseBtn.disabled = false;
                 playPauseBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btnExport.disabled = false;
                 
-                // Reset UI to paused state (Wait for user to click play to avoid browser block)
                 isPlaying = false;
                 iconPlay.classList.remove('hidden');
                 iconPause.classList.add('hidden');
                 cancelAnimationFrame(animationId);
+                drawInitialCanvas();
             }
         });
 
-        // Play / Pause logic
         function togglePlay() {
-            // Initialize audio graph on explicit user click to satisfy browser policies
             initAudioGraph();
 
             if (audioCtx.state === 'suspended') {
@@ -437,6 +1334,7 @@
                 }
             } else {
                 audioElement.pause();
+                audioCtx.suspend(); 
                 isPlaying = false;
                 iconPlay.classList.remove('hidden');
                 iconPause.classList.add('hidden');
@@ -446,7 +1344,6 @@
 
         playPauseBtn.addEventListener('click', togglePlay);
 
-        // Timeline updates
         audioElement.addEventListener('timeupdate', () => {
             const percent = (audioElement.currentTime / audioElement.duration) * 100;
             seekSlider.value = percent || 0;
@@ -462,7 +1359,7 @@
             audioElement.currentTime = seekTime;
         });
 
-        // --- Visualizer Loop ---
+        // --- Video Render Loop (HD Logo + Visualizer) ---
         function drawVisualizer() {
             if (!isPlaying) return;
             animationId = requestAnimationFrame(drawVisualizer);
@@ -471,125 +1368,282 @@
             const dataArray = new Uint8Array(bufferLength);
             analyser.getByteFrequencyData(dataArray);
 
+            // Calculate average volume for the logo "pulse" effect
+            let sum = 0;
+            for(let i=0; i<bufferLength; i++) sum += dataArray[i];
+            let avg = sum / bufferLength;
+            let pulse = 1 + (avg / 256) * 0.3; // Scale between 1.0 and 1.3
+
+            // Draw Background
             canvasCtx.fillStyle = '#030712'; // bg-gray-950
             canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
 
+            // Draw frequency bars at the bottom
             const barWidth = (canvas.width / bufferLength) * 2.5;
             let barHeight;
             let x = 0;
 
             for (let i = 0; i < bufferLength; i++) {
-                barHeight = dataArray[i] / 2;
+                barHeight = dataArray[i] * 2; // Scaled for 720p
 
-                // Color gradient based on height
-                const r = barHeight + 100;
+                const r = (dataArray[i] / 2) + 100;
                 const g = 50;
-                const b = 250 - (barHeight * 2);
+                const b = 250 - dataArray[i];
 
                 canvasCtx.fillStyle = `rgb(${r},${g},${b})`;
                 canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
 
                 x += barWidth + 1;
             }
+
+            // Draw pulsing logo in the center
+            canvasCtx.save();
+            canvasCtx.translate(canvas.width/2, canvas.height/2);
+            canvasCtx.scale(pulse, pulse);
+            
+            canvasCtx.font = "bold 100px sans-serif";
+            canvasCtx.textAlign = "center";
+            canvasCtx.textBaseline = "middle";
+            
+            // Neon Gradient text
+            let gradient = canvasCtx.createLinearGradient(-300, 0, 300, 0);
+            gradient.addColorStop(0, "#a855f7"); // purple
+            gradient.addColorStop(1, "#3b82f6"); // blue
+            
+            canvasCtx.fillStyle = gradient;
+            canvasCtx.fillText("SONICFORGE", 0, -20);
+            
+            canvasCtx.font = "30px sans-serif";
+            canvasCtx.fillStyle = "#9ca3af";
+            canvasCtx.fillText("A U D I O   L A B O R A T O R Y", 0, 50);
+            
+            canvasCtx.restore();
         }
 
         // --- Control Sliders Logic ---
         
-        // Helper to update text labels
         const updateText = (id, text) => document.getElementById(id).innerText = text;
 
-        // 1. Bass
         document.getElementById('slider-bass').addEventListener('input', (e) => {
             const bassVal = parseFloat(e.target.value);
             if(nodes.bass) nodes.bass.gain.value = bassVal;
-            
-            // Boost the overall volume as bass increases so the song doesn't get drowned out
-            // At max bass (40dB), this will make the rest of the song up to 150% louder
             if(nodes.bassMakeup) nodes.bassMakeup.gain.value = 1 + (bassVal / 40) * 1.5; 
-            
             updateText('val-bass', `${bassVal} dB`);
         });
-
-        // 2. Treble
+        document.getElementById('slider-subbass').addEventListener('input', (e) => {
+            if(nodes.subbass) nodes.subbass.gain.value = e.target.value;
+            updateText('val-subbass', `${e.target.value} dB`);
+        });
         document.getElementById('slider-treble').addEventListener('input', (e) => {
             if(nodes.treble) nodes.treble.gain.value = e.target.value;
             updateText('val-treble', `${e.target.value} dB`);
         });
-
-        // 3. Tempo (Preserves Pitch)
+        document.getElementById('slider-brilliance').addEventListener('input', (e) => {
+            if(nodes.brilliance) nodes.brilliance.gain.value = e.target.value;
+            updateText('val-brilliance', `${e.target.value} dB`);
+        });
         document.getElementById('slider-tempo').addEventListener('input', (e) => {
             audioElement.preservesPitch = true;
             audioElement.playbackRate = e.target.value;
             updateText('val-tempo', `${parseFloat(e.target.value).toFixed(2)}x`);
-            
-            // Reset Pitch slider to avoid conflict
             document.getElementById('slider-pitch').value = 1;
             updateText('val-pitch', 'Normal');
         });
-
-        // 4. Vinyl Pitch (Changes Speed AND Pitch)
         document.getElementById('slider-pitch').addEventListener('input', (e) => {
             audioElement.preservesPitch = false;
             audioElement.playbackRate = e.target.value;
             updateText('val-pitch', `${parseFloat(e.target.value).toFixed(2)}x`);
-
-            // Reset Tempo slider to avoid conflict
             document.getElementById('slider-tempo').value = 1;
             updateText('val-tempo', '1.00x');
         });
-
-        // 5. 8D Panner
         document.getElementById('slider-8d').addEventListener('input', (e) => {
             if(nodes.pannerLFOGain) nodes.pannerLFOGain.gain.value = e.target.value;
             updateText('val-8d', `${Math.round(e.target.value * 100)}%`);
         });
-
-        // 6. Reverb
+        document.getElementById('slider-autopan').addEventListener('input', (e) => {
+            if(nodes.autopanLFOGain) nodes.autopanLFOGain.gain.value = e.target.value;
+            updateText('val-autopan', `${Math.round(e.target.value * 100)}%`);
+        });
+        document.getElementById('slider-surround').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if(nodes.surroundWet && nodes.surroundDry) {
+                nodes.surroundWet.gain.value = val;
+                nodes.surroundDry.gain.value = 1 - val;
+            }
+            updateText('val-surround', `${Math.round(val * 100)}%`);
+        });
         document.getElementById('slider-reverb').addEventListener('input', (e) => {
             if(nodes.reverbWet) nodes.reverbWet.gain.value = e.target.value;
             updateText('val-reverb', `${Math.round(e.target.value * 100)}%`);
         });
-
-        // 7. Delay (Echo)
         document.getElementById('slider-delay').addEventListener('input', (e) => {
             if(nodes.delayWet) nodes.delayWet.gain.value = e.target.value;
             updateText('val-delay', `${Math.round(e.target.value * 100)}%`);
         });
-
-        // 8. Lo-Fi
+        document.getElementById('slider-chorus').addEventListener('input', (e) => {
+            if(nodes.chorusWet) nodes.chorusWet.gain.value = e.target.value;
+            updateText('val-chorus', `${Math.round(e.target.value * 100)}%`);
+        });
+        document.getElementById('slider-vibrato').addEventListener('input', (e) => {
+            if(nodes.vibratoLFOGain) nodes.vibratoLFOGain.gain.value = e.target.value;
+            updateText('val-vibrato', `${Math.round((e.target.value/0.005) * 100)}%`);
+        });
         document.getElementById('slider-lofi').addEventListener('input', (e) => {
             const val = e.target.value;
-            // Exponentially map 0-100 to 22050Hz - 800Hz
             const freq = val == 0 ? 22050 : 22050 * Math.pow(800/22050, val/100);
             if(nodes.lofi) nodes.lofi.frequency.value = freq;
             updateText('val-lofi', `${val}%`);
         });
-
-        // 9. Distortion
+        document.getElementById('slider-underwater').addEventListener('input', (e) => {
+            const val = e.target.value;
+            const freq = val == 0 ? 22050 : 22050 * Math.pow(100/22050, val/100);
+            if(nodes.underwater) nodes.underwater.frequency.value = freq;
+            updateText('val-underwater', `${val}%`);
+        });
+        document.getElementById('slider-telephone').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if(nodes.teleWet && nodes.teleDry) {
+                nodes.teleWet.gain.value = val;
+                nodes.teleDry.gain.value = 1 - val;
+            }
+            updateText('val-telephone', `${Math.round(val * 100)}%`);
+        });
         document.getElementById('slider-dist').addEventListener('input', (e) => {
             const amount = parseInt(e.target.value);
-            if(nodes.distortion) nodes.distortion.curve = makeDistortionCurve(amount * 4); // Scale up for effect
+            if(nodes.distortion) nodes.distortion.curve = makeDistortionCurve(amount * 4);
             updateText('val-dist', `${amount}%`);
         });
-
-        // 10. Tremolo
+        document.getElementById('slider-bitcrusher').addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            const bits = val === 0 ? 0 : 16 - (val/100)*14; 
+            if(nodes.bitcrusher) nodes.bitcrusher.curve = makeBitcrushCurve(bits);
+            updateText('val-bitcrusher', `${val}%`);
+        });
+        document.getElementById('slider-phaser').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if(nodes.phaserWet && nodes.phaserDry) {
+                nodes.phaserWet.gain.value = val;
+                nodes.phaserDry.gain.value = 1 - val;
+            }
+            updateText('val-phaser', `${Math.round(val * 100)}%`);
+        });
         document.getElementById('slider-tremolo').addEventListener('input', (e) => {
             if(nodes.tremoloLFOGain) nodes.tremoloLFOGain.gain.value = e.target.value;
             updateText('val-tremolo', `${Math.round(e.target.value * 100)}%`);
         });
-
-        // 11. Night Mode (Dynamics Compressor)
+        document.getElementById('slider-gater').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value); 
+            if(nodes.gaterDry && nodes.gaterLFOGain) {
+                nodes.gaterDry.gain.value = 1 - (val * 0.5); 
+                nodes.gaterLFOGain.gain.value = val * 0.5; 
+            }
+            updateText('val-gater', `${Math.round(val * 100)}%`);
+        });
         document.getElementById('slider-night').addEventListener('input', (e) => {
-            const val = e.target.value; // 0 to 100
+            const val = e.target.value;
             if(nodes.compressor) {
-                // As slider goes up, lower the threshold (catch more audio) and raise the ratio (squash it harder)
                 nodes.compressor.threshold.value = val == 0 ? 0 : -50 * (val/100);
-                nodes.compressor.ratio.value = val == 0 ? 1 : 1 + (19 * (val/100)); // ratio 1 to 20
+                nodes.compressor.ratio.value = val == 0 ? 1 : 1 + (19 * (val/100));
             }
             updateText('val-night', val == 0 ? 'Off' : `${val}%`);
         });
+        document.getElementById('slider-wah').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if(nodes.wahWet && nodes.wahDry) {
+                nodes.wahWet.gain.value = val;
+                nodes.wahDry.gain.value = 1 - val;
+            }
+            updateText('val-wah', `${Math.round(val * 100)}%`);
+        });
+        document.getElementById('slider-robot').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if(nodes.ringWet && nodes.ringDry) {
+                nodes.ringWet.gain.value = val;
+                nodes.ringDry.gain.value = 1 - val;
+            }
+            updateText('val-robot', `${Math.round(val * 100)}%`);
+        });
+        document.getElementById('slider-flanger').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if(nodes.flangerWet && nodes.flangerDry) {
+                nodes.flangerWet.gain.value = val;
+                nodes.flangerDry.gain.value = 1 - val;
+            }
+            updateText('val-flanger', `${Math.round(val * 100)}%`);
+        });
+        document.getElementById('slider-pingpong').addEventListener('input', (e) => {
+            if(nodes.pingWet) nodes.pingWet.gain.value = parseFloat(e.target.value);
+            updateText('val-pingpong', `${Math.round(e.target.value * 100)}%`);
+        });
+        document.getElementById('slider-vinylcrackle').addEventListener('input', (e) => {
+            if(nodes.noiseWet) nodes.noiseWet.gain.value = parseFloat(e.target.value) * 0.5;
+            updateText('val-vinylcrackle', `${Math.round(e.target.value * 100)}%`);
+        });
+        document.getElementById('slider-autotune').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if(nodes.atWet && nodes.atDry) {
+                nodes.atWet.gain.value = val;
+                nodes.atDry.gain.value = 1 - (val * 0.5); 
+            }
+            updateText('val-autotune', `${Math.round(val * 100)}%`);
+        });
+        
+        // 30. Megaphone
+        document.getElementById('slider-megaphone').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if(nodes.megaWet && nodes.megaDry) {
+                nodes.megaWet.gain.value = val;
+                nodes.megaDry.gain.value = 1 - val;
+            }
+            updateText('val-megaphone', `${Math.round(val * 100)}%`);
+        });
 
-        // 12. Master Volume
+        // 31. Filter Sweep
+        document.getElementById('slider-sweep').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if(nodes.sweepWet && nodes.sweepDry) {
+                nodes.sweepWet.gain.value = val;
+                nodes.sweepDry.gain.value = 1 - val;
+            }
+            updateText('val-sweep', `${Math.round(val * 100)}%`);
+        });
+
+        // 32. Through Wall
+        document.getElementById('slider-wall').addEventListener('input', (e) => {
+            const val = e.target.value;
+            // 0% = 22050Hz (off), 100% = ~200Hz (extreme muffle)
+            const freq = val == 0 ? 22050 : 22050 * Math.pow(200/22050, val/100);
+            if(nodes.wallFilter) nodes.wallFilter.frequency.value = freq;
+            updateText('val-wall', `${val}%`);
+        });
+
+        // 33. Overdrive Fuzz
+        document.getElementById('slider-fuzz').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if(nodes.fuzzWet && nodes.fuzzDry) {
+                nodes.fuzzWet.gain.value = val;
+                nodes.fuzzDry.gain.value = 1 - val;
+            }
+            updateText('val-fuzz', `${Math.round(val * 100)}%`);
+        });
+
+        // 34. AM Transmit
+        document.getElementById('slider-am').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if(nodes.amWet && nodes.amDry) {
+                nodes.amWet.gain.value = val;
+                nodes.amDry.gain.value = 1 - val;
+            }
+            updateText('val-am', `${Math.round(val * 100)}%`);
+        });
+
+        // 35. Space Cave
+        document.getElementById('slider-cave').addEventListener('input', (e) => {
+            if(nodes.caveWet) nodes.caveWet.gain.value = parseFloat(e.target.value);
+            updateText('val-cave', `${Math.round(e.target.value * 100)}%`);
+        });
+
+        // Master Volume
         document.getElementById('slider-vol').addEventListener('input', (e) => {
             if(masterGain) masterGain.gain.value = e.target.value;
             updateText('val-vol', `${Math.round(e.target.value * 100)}%`);
